@@ -386,7 +386,7 @@ class MC_Outlet_Admin {
         $api_key = get_option('mc_google_maps_api_key', '');
         $brand_color = get_option('mc_brand_color', '#BC1419');
         $zoom = get_option('mc_default_zoom', 6);
-        $github_repo = get_option('mc_github_repo', 'mistercoffee/mister-coffee-outlet-finder');
+        $github_repo = get_option('mc_github_repo', 'lynesslim/mister-coffee-outlet-finder');
         $github_token = get_option('mc_github_token', '');
         ?>
         <div class="wrap mc-admin-wrap">

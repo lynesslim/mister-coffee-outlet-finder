@@ -23,7 +23,7 @@ class MC_Outlet_Updater {
 
         require_once $puc_path;
 
-        $github_repo = get_option('mc_github_repo', 'mistercoffee/mister-coffee-outlet-finder');
+        $github_repo = get_option('mc_github_repo', 'lynesslim/mister-coffee-outlet-finder');
         $github_token = get_option('mc_github_token', '');
 
         if (empty($github_repo)) {
