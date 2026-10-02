@@ -194,25 +194,35 @@
 }
 
 .mc-search-ico {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--mc-text-light);
-  pointer-events: none;
+  position: absolute !important;
+  left: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: var(--mc-text-light) !important;
+  pointer-events: none !important;
+  z-index: 3 !important;
+  width: 16px !important;
+  height: 16px !important;
 }
 
 .mc-search-field {
-  width: 100%;
-  background: #f9fafb;
-  border: 1px solid var(--mc-border);
-  border-radius: 6px;
-  padding: 11px 14px 11px 40px;
-  color: var(--mc-text-dark);
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
-  transition: all 0.2s;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: #f9fafb !important;
+  border: 1px solid var(--mc-border) !important;
+  border-radius: 6px !important;
+  padding-left: 44px !important;
+  padding-right: 14px !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  color: var(--mc-text-dark) !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  font-family: inherit !important;
+  outline: none !important;
+  transition: all 0.2s !important;
 }
 
 .mc-search-field:focus {
