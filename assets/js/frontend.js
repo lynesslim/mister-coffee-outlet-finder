@@ -379,15 +379,21 @@
     // Status label
     $('#mcMapStatusLabel').text(`Selected: ${outlet.name}`);
 
-    // Transition sidebar to Detail View
-    $('#mcSidebarListView').hide();
-    $('#mcSidebarDetailView').addClass('active');
+    // Transition sidebar to Detail View: replace list view entirely
+    $('#mcSidebarListView').addClass('hidden').hide();
+    $('#mcSidebarDetailView').addClass('active').show();
+
+    // Reset detail scroll position to top
+    const detailScrollEl = document.querySelector('.mc-detail-scroll-area');
+    if (detailScrollEl) {
+      detailScrollEl.scrollTop = 0;
+    }
   };
 
-  // Back to All Outlets List View
+  // Back to All Outlets List View: restore list view entirely
   window.mcReturnToListView = function() {
-    $('#mcSidebarDetailView').removeClass('active');
-    $('#mcSidebarListView').show();
+    $('#mcSidebarDetailView').removeClass('active').hide();
+    $('#mcSidebarListView').removeClass('hidden').show();
     activeOutletId = null;
     $('.mc-outlet-card-item').removeClass('active');
     $('.mc-custom-pin').removeClass('active');
