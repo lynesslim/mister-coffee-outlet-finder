@@ -1,0 +1,410 @@
+[
+  {
+    "name": "Arabica Beans 200g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Arabica Ground 200g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - Brazil 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - Colombia 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - Ethiopia 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - Guatemala 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - India 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - Mandailing 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - PNG 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - Sumatra 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - Tanzania 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Country - Vietnam 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Espresso - Bar 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Espresso - Bar DR 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Espresso - Classic 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Espresso - Gold 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Espresso - Pearla 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Espresso - Royal 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Espresso - Super Bar 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Espresso - Super Bar DR 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Italian Style 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Species - Arabica 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Species - Liberica 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Bean - Species - Robusta 500g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Decaf 200g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Robusta Beans 200g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "Robusta Ground 200g",
+    "category": "Coffee Beans & Ground"
+  },
+  {
+    "name": "BG Arabica 15's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Arabica FB 15's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Colombia DR 10's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Ethiopia DR 10's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Italian Style DR 10's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Liberica DR 10's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Mandailing DR 10's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Original 15's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Original Eco 10's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG Original FB 15's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "BG PNG DR 10's",
+    "category": "Bagbrew (BG)"
+  },
+  {
+    "name": "Coffee Bag 10's",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Kopi O 118",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Kopi O 228",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Kopi O 338",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Kopi O KIM",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Kopi O Kosong  - Special Blend 15gx15s'",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Kopi O Kosong 10gx20s'",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Kopi O Kosong FB  - Special Blend 15gx15s'",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Kopi O RP",
+    "category": "Kopi O"
+  },
+  {
+    "name": "Coffee Machine - Drip Pitcher Pot",
+    "category": "Coffee Machines"
+  },
+  {
+    "name": "Coffee Machine - EPM Machine",
+    "category": "Coffee Machines"
+  },
+  {
+    "name": "Coffee Machine - Zest Pod Machine",
+    "category": "Coffee Machines"
+  },
+  {
+    "name": "DB Arabica 15's",
+    "category": "Dripbrew (DB)"
+  },
+  {
+    "name": "DB Arabica FB 15's",
+    "category": "Dripbrew (DB)"
+  },
+  {
+    "name": "DB Colombia 5's",
+    "category": "Dripbrew (DB)"
+  },
+  {
+    "name": "DB Decaf 5's",
+    "category": "Dripbrew (DB)"
+  },
+  {
+    "name": "DB Ethiopia 5's",
+    "category": "Dripbrew (DB)"
+  },
+  {
+    "name": "DB Kilimanjaro 5's",
+    "category": "Dripbrew (DB)"
+  },
+  {
+    "name": "DB Liberica 5's",
+    "category": "Dripbrew (DB)"
+  },
+  {
+    "name": "DB Sumatra 5's",
+    "category": "Dripbrew (DB)"
+  },
+  {
+    "name": "Esebrew Bar 10's",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Esebrew Classic 10's",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Esebrew Decaf 10's",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Esebrew Gold 10's",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Esebrew Italungo 10's",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Esebrew Lungo 10s",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Esebrew Pearl 10's",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Esebrew Royal 10's",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Esebrew Super Bar 10's",
+    "category": "Esebrew"
+  },
+  {
+    "name": "Food Service - E40 1KG",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - HAILAM SPECIAL 1KG",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - R206 900G",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - SHANG 100 1KG",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - SP7 1KG",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - SPA RP 1KG",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - Teh 101 800G",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - Teh 88 1KG",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - Teh 99 900G",
+    "category": "Food Service"
+  },
+  {
+    "name": "Food Service - MISTER T 1KG",
+    "category": "Latte & Tea"
+  },
+  {
+    "name": "LATTE - Caf\u00e9 Latte",
+    "category": "Latte & Tea"
+  },
+  {
+    "name": "LATTE - Kopi Latte",
+    "category": "Latte & Tea"
+  },
+  {
+    "name": "LATTE - MISTER T Teh Latte",
+    "category": "Latte & Tea"
+  },
+  {
+    "name": "MISTER T - Uncang Teh Kosong 2g 20's",
+    "category": "Latte & Tea"
+  },
+  {
+    "name": "Instant Cappuccino",
+    "category": "Instant Beverages"
+  },
+  {
+    "name": "Instant Ice Lemon Tea",
+    "category": "Instant Beverages"
+  },
+  {
+    "name": "Instant WC Creamy",
+    "category": "Instant Beverages"
+  },
+  {
+    "name": "Instant WC No Sugar",
+    "category": "Instant Beverages"
+  },
+  {
+    "name": "Instant WC Strong",
+    "category": "Instant Beverages"
+  },
+  {
+    "name": "Instant White Tea",
+    "category": "Instant Beverages"
+  },
+  {
+    "name": "KOPI O Powder - House Blend 300g",
+    "category": "Other"
+  },
+  {
+    "name": "KOPI O Powder - Premium Blend 300g ",
+    "category": "Other"
+  },
+  {
+    "name": "KOPI O Powder - Royal Blend 300g ",
+    "category": "Other"
+  },
+  {
+    "name": "KOPI O Powder - Special Blend 300g",
+    "category": "Other"
+  },
+  {
+    "name": "Ncap Bar ",
+    "category": "Ncap Pods (Nespresso Compatible)"
+  },
+  {
+    "name": "Ncap Classic",
+    "category": "Ncap Pods (Nespresso Compatible)"
+  },
+  {
+    "name": "Ncap Decaf",
+    "category": "Ncap Pods (Nespresso Compatible)"
+  },
+  {
+    "name": "Ncap Gold ",
+    "category": "Ncap Pods (Nespresso Compatible)"
+  },
+  {
+    "name": "Ncap Pearla ",
+    "category": "Ncap Pods (Nespresso Compatible)"
+  },
+  {
+    "name": "Ncap Royal ",
+    "category": "Ncap Pods (Nespresso Compatible)"
+  },
+  {
+    "name": "Ncap Super Bar ",
+    "category": "Ncap Pods (Nespresso Compatible)"
+  },
+  {
+    "name": "Podbrew Arabica 10's",
+    "category": "Podbrew"
+  },
+  {
+    "name": "Podbrew Brazil 10's",
+    "category": "Podbrew"
+  },
+  {
+    "name": "Podbrew Colombia 10's",
+    "category": "Podbrew"
+  },
+  {
+    "name": "Podbrew Intenzo 10's",
+    "category": "Podbrew"
+  }
+]
