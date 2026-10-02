@@ -44,8 +44,14 @@ class MC_Outlet_Shortcode {
         wp_enqueue_script('mc-outlet-frontend-js');
 
         // Fetch all outlets & products from database
-        $outlets = MC_Outlet_DB::get_outlets();
+        $all_db_outlets = MC_Outlet_DB::get_outlets();
         $products = MC_Outlet_DB::get_products();
+
+        // Exclude outlets with 0 SKU stock from frontend finder
+        $outlets = array_values(array_filter($all_db_outlets, function($o) {
+            $prods = isset($o['products']) ? (is_array($o['products']) ? $o['products'] : json_decode($o['products'], true)) : [];
+            return !empty($prods) && is_array($prods) && count($prods) > 0;
+        }));
 
         $brand_color = get_option('mc_brand_color', '#BC1419');
         $default_zoom = intval(get_option('mc_default_zoom', 6));
@@ -241,10 +247,16 @@ class MC_Outlet_Shortcode {
                         <span class="pulse-dot"></span>
                         <span id="mcMapStatusLabel">Showing <?php echo count($outlets); ?> Outlets in Malaysia & Singapore</span>
                     </div>
-                    <button type="button" class="mc-map-reset-btn" onclick="mcResetToCountryView()" title="Zoom out to whole country">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                        Country View
-                    </button>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div class="mc-map-theme-toggle">
+                            <button type="button" class="mc-theme-btn active" id="mcThemeNightBtn" onclick="mcSetMapTheme('night')" title="Google Maps Night Theme">🌙 Night</button>
+                            <button type="button" class="mc-theme-btn" id="mcThemeNormalBtn" onclick="mcSetMapTheme('normal')" title="Standard Google Maps">☀️ Normal</button>
+                        </div>
+                        <button type="button" class="mc-map-reset-btn" onclick="mcResetToCountryView()" title="Zoom out to whole country">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            Country View
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Leaflet interactive multi-marker map -->

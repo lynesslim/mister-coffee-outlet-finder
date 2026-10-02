@@ -58,6 +58,20 @@
     return DEFAULT_PHOTOS[idx % DEFAULT_PHOTOS.length];
   }
 
+  // Switch Map Theme between Night and Normal Google Map
+  window.mcSetMapTheme = function(theme) {
+    const mapEl = $('#mcInteractiveMap');
+    if (theme === 'night') {
+      mapEl.addClass('mc-night-tiles');
+      $('#mcThemeNightBtn').addClass('active');
+      $('#mcThemeNormalBtn').removeClass('active');
+    } else {
+      mapEl.removeClass('mc-night-tiles');
+      $('#mcThemeNormalBtn').addClass('active');
+      $('#mcThemeNightBtn').removeClass('active');
+    }
+  };
+
   // Initialize Map with Country Overview
   function initMap() {
     const mapEl = document.getElementById('mcInteractiveMap');
@@ -73,11 +87,14 @@
       attributionControl: false
     }).setView(countryCenter, defaultZoom);
 
-    // Clean, high quality light map tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd'
+    // Standard Google Maps Tile Layer (replaces Carto, no watermarks)
+    L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['0', '1', '2', '3']
     }).addTo(map);
+
+    // Apply Night theme by default
+    mcSetMapTheme('night');
 
     markersLayer = L.layerGroup().addTo(map);
     renderMapMarkers(allOutlets);
@@ -441,17 +458,93 @@
     });
   }
 
+  // Bulletproof mouse wheel scroll trapping for sidebar containers
+  function setupScrollTraps() {
+    // 1. Trap scrolling on the outlets card list
+    $('#mcOutletCardsContainer').on('wheel', function(e) {
+      const el = this;
+      const delta = e.originalEvent.deltaY;
+      const up = delta < 0;
+      const down = delta > 0;
+      const atTop = el.scrollTop <= 0;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+
+      if ((up && atTop) || (down && atBottom)) {
+        e.preventDefault();
+      } else {
+        el.scrollTop += delta;
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+
+    // 2. Trap scrolling on the outlet detail view area & product stock list
+    $('.mc-detail-scroll-area').on('wheel', function(e) {
+      // Check if mouse is hovering over the inner product stock list
+      const stockEl = $(e.target).closest('.mc-stock-body')[0];
+      if (stockEl && stockEl.scrollHeight > stockEl.clientHeight) {
+        const delta = e.originalEvent.deltaY;
+        const up = delta < 0;
+        const down = delta > 0;
+        const atTop = stockEl.scrollTop <= 0;
+        const atBottom = stockEl.scrollTop + stockEl.clientHeight >= stockEl.scrollHeight - 1;
+
+        if ((up && atTop) || (down && atBottom)) {
+          e.preventDefault();
+        } else {
+          stockEl.scrollTop += delta;
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
+      }
+
+      const el = this;
+      const delta = e.originalEvent.deltaY;
+      const up = delta < 0;
+      const down = delta > 0;
+      const atTop = el.scrollTop <= 0;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+
+      if ((up && atTop) || (down && atBottom)) {
+        e.preventDefault();
+      } else {
+        el.scrollTop += delta;
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+
+    // 3. Header & Meta area scroll fallback (scrolls the list)
+    $('.mc-sidebar-header, .mc-sidebar-bottom-meta').on('wheel', function(e) {
+      const listEl = document.getElementById('mcOutletCardsContainer');
+      if (listEl) {
+        listEl.scrollTop += e.originalEvent.deltaY;
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+  }
+
   // Startup on DOM Ready
   $(document).ready(function() {
     if (window.mcFinderSettings) {
-      allOutlets = window.mcFinderSettings.outlets || [];
+      // Filter out outlets with 0 SKU stock
+      allOutlets = (window.mcFinderSettings.outlets || []).filter(o => {
+        const prods = Array.isArray(o.products) ? o.products : [];
+        return prods.length > 0;
+      });
       catalogProducts = window.mcFinderSettings.products || [];
     }
 
     currentFiltered = [...allOutlets];
 
+    // Update count badge with active stocked outlets
+    $('#mcTotalOutletsBadge').text(allOutlets.length);
+
     initMap();
     renderOutletCards(allOutlets);
+    setupScrollTraps();
   });
 
 })(jQuery);

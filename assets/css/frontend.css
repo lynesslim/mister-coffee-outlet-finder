@@ -47,20 +47,29 @@
 .mc-widget-sidebar {
   width: 440px;
   min-width: 440px;
-  height: 100%;
+  max-width: 440px;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
   background: #ffffff;
   border-right: 1px solid var(--mc-border);
-  display: flex;
-  flex-direction: column;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-shrink: 0 !important;
   position: relative;
   z-index: 10;
+  overflow: hidden !important;
 }
 
 /* View 1: List */
 .mc-sidebar-list-view {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  flex: 1 1 0% !important;
+  overflow: hidden !important;
 }
 
 .mc-sidebar-header {
@@ -232,8 +241,12 @@
 
 /* Outlets Scrollable List */
 .mc-sidebar-items-scroll {
-  flex: 1;
-  overflow-y: auto;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
   scrollbar-width: thin;
   scrollbar-color: var(--mc-border) transparent;
 }
@@ -367,13 +380,17 @@
 /* View 2: Detail View */
 .mc-sidebar-detail-view {
   display: none;
-  flex-direction: column;
-  height: 100%;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
   background: #ffffff;
 }
 
 .mc-sidebar-detail-view.active {
-  display: flex;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
 }
 
 .mc-detail-top-bar {
@@ -383,6 +400,7 @@
   align-items: center;
   justify-content: space-between;
   background: #f9fafb;
+  flex-shrink: 0;
 }
 
 .mc-back-btn {
@@ -416,8 +434,12 @@
 
 .mc-detail-scroll-area {
   padding: 24px;
-  flex: 1;
-  overflow-y: auto;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
   scrollbar-width: thin;
 }
 
@@ -565,8 +587,10 @@
 
 .mc-stock-body {
   padding: 12px 14px;
-  max-height: 200px;
-  overflow-y: auto;
+  max-height: 220px !important;
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
   scrollbar-width: thin;
   display: flex;
   flex-direction: column;
@@ -773,9 +797,55 @@
   .mc-widget-sidebar {
     width: 100%;
     min-width: 100%;
-    height: 550px;
+    height: 550px !important;
+    max-height: 550px !important;
   }
   .mc-widget-map-panel {
     height: 400px;
   }
 }
+
+/* =========================================================
+ * GOOGLE MAPS NIGHT THEME & THEME SWITCHER
+ * ======================================================= */
+.mc-night-tiles .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.mc-map-theme-toggle {
+  display: inline-flex;
+  background: #ffffff;
+  border: 1.5px solid var(--mc-border);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.mc-theme-btn {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mc-text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mc-theme-btn:hover {
+  color: var(--mc-text-dark);
+  background: #f3f4f6;
+}
+
+.mc-theme-btn.active {
+  background: var(--mc-text-dark);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
