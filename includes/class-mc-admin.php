@@ -175,103 +175,111 @@ class MC_Outlet_Admin {
                         <input type="hidden" id="outlet_id" name="id" value="" />
                         
                         <div class="mc-modal-body">
-                            <div class="mc-form-grid">
-                                <div class="mc-form-col">
-                                    <label><strong>Outlet Name *</strong></label>
-                                    <input type="text" id="outlet_name" name="name" required class="widefat" placeholder="e.g. Mercato Kulim" />
-                                </div>
-                                <div class="mc-form-col">
-                                    <label><strong>Retailer / Chain</strong></label>
-                                    <input type="text" id="outlet_retailer" name="retailer" class="widefat" placeholder="e.g. Lotus, Mercato, AEON, Showroom" />
-                                </div>
-                            </div>
-
-                            <div class="mc-form-grid">
-                                <div class="mc-form-col">
-                                    <label><strong>State</strong></label>
-                                    <input type="text" id="outlet_state" name="state" class="widefat" placeholder="e.g. KL & SELANGOR, KEDAH, PENANG, JOHOR" />
-                                </div>
-                                <div class="mc-form-col">
-                                    <label><strong>Region</strong></label>
-                                    <input type="text" id="outlet_region" name="region" class="widefat" placeholder="e.g. Northern, Central, Southern, East Coast" />
-                                </div>
-                            </div>
-
-                            <div class="mc-form-row">
-                                <label><strong>Address / Storefront Location</strong></label>
-                                <textarea id="outlet_address" name="address" rows="2" class="widefat" placeholder="e.g. Lot G-12, Ground Floor, Mall Name..."></textarea>
-                            </div>
-
-                            <div class="mc-form-grid">
-                                <div class="mc-form-col">
-                                    <label><strong>Operating Hours</strong></label>
-                                    <input type="text" id="outlet_operating_hours" name="operating_hours" class="widefat" value="Mon - Sun: 10:00 AM - 10:00 PM" />
-                                </div>
-                                <div class="mc-form-col">
-                                    <label><strong>Phone Number</strong></label>
-                                    <input type="text" id="outlet_phone" name="phone" class="widefat" placeholder="e.g. +60 4-490 8822" />
-                                </div>
-                            </div>
-
-                            <div class="mc-form-grid">
-                                <div class="mc-form-col">
-                                    <label><strong>Latitude</strong></label>
-                                    <input type="number" step="0.0000001" id="outlet_lat" name="lat" class="widefat" placeholder="e.g. 5.3857255" />
-                                </div>
-                                <div class="mc-form-col">
-                                    <label><strong>Longitude</strong></label>
-                                    <input type="number" step="0.0000001" id="outlet_lng" name="lng" class="widefat" placeholder="e.g. 100.5468934" />
-                                </div>
-                            </div>
-
-                            <div class="mc-form-grid">
-                                <div class="mc-form-col">
-                                    <label><strong>Google Maps URL</strong></label>
-                                    <input type="url" id="outlet_maps_url" name="maps_url" class="widefat" placeholder="https://maps.app.goo.gl/..." />
-                                </div>
-                                <div class="mc-form-col">
-                                    <label><strong>Store Photo URL</strong></label>
-                                    <div style="display:flex; gap:6px;">
-                                        <input type="text" id="outlet_photo_url" name="photo_url" class="widefat" placeholder="https://... image link" />
-                                        <button type="button" class="button" onclick="mcUploadMedia('outlet_photo_url')">Upload</button>
+                            <div class="mc-modal-two-col">
+                                <!-- Left Column: Outlet Details -->
+                                <div class="mc-modal-col-details">
+                                    <div class="mc-form-grid">
+                                        <div class="mc-form-col">
+                                            <label><strong>Outlet Name *</strong></label>
+                                            <input type="text" id="outlet_name" name="name" required class="widefat" placeholder="e.g. Mercato Kulim" />
+                                        </div>
+                                        <div class="mc-form-col">
+                                            <label><strong>Retailer / Chain</strong></label>
+                                            <input type="text" id="outlet_retailer" name="retailer" class="widefat" placeholder="e.g. Lotus, Mercato, AEON, Showroom" />
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <div class="mc-form-row" style="margin-top:10px;">
-                                <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
-                                    <input type="checkbox" id="outlet_grinder" name="grinder" value="1" />
-                                    <span>☕ <strong>In-Store Coffee Grinder Available</strong> at this outlet</span>
-                                </label>
-                            </div>
-
-                            <!-- Products Checklist -->
-                            <div class="mc-form-row" style="margin-top:20px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                    <label><strong>Product Availability Checklist</strong></label>
-                                    <div>
-                                        <button type="button" class="button button-small" onclick="mcToggleAllCheckboxes(true)">Check All</button>
-                                        <button type="button" class="button button-small" onclick="mcToggleAllCheckboxes(false)">Uncheck All</button>
+                                    <div class="mc-form-grid">
+                                        <div class="mc-form-col">
+                                            <label><strong>State</strong></label>
+                                            <input type="text" id="outlet_state" name="state" class="widefat" placeholder="e.g. KL & SELANGOR, KEDAH, PENANG, JOHOR" />
+                                        </div>
+                                        <div class="mc-form-col">
+                                            <label><strong>Region</strong></label>
+                                            <input type="text" id="outlet_region" name="region" class="widefat" placeholder="e.g. Northern, Central, Southern, East Coast" />
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <div class="mc-products-checklist-box">
-                                    <?php foreach ($grouped_products as $cat_title => $cat_items) : ?>
-                                        <div class="mc-cat-section">
-                                            <h4><?php echo esc_html($cat_title); ?> (<?php echo count($cat_items); ?>)</h4>
-                                            <div class="mc-checkbox-grid">
-                                                <?php foreach ($cat_items as $item_name) : ?>
-                                                    <label class="mc-product-check-item">
-                                                        <input type="checkbox" name="products[]" value="<?php echo esc_attr($item_name); ?>" />
-                                                        <span><?php echo esc_html($item_name); ?></span>
-                                                    </label>
-                                                <?php endforeach; ?>
+
+                                    <div class="mc-form-row">
+                                        <label><strong>Address / Storefront Location</strong></label>
+                                        <textarea id="outlet_address" name="address" rows="3" class="widefat" placeholder="e.g. Lot G-12, Ground Floor, Mall Name..."></textarea>
+                                    </div>
+
+                                    <div class="mc-form-grid">
+                                        <div class="mc-form-col">
+                                            <label><strong>Operating Hours</strong></label>
+                                            <input type="text" id="outlet_operating_hours" name="operating_hours" class="widefat" value="Mon - Sun: 10:00 AM - 10:00 PM" />
+                                        </div>
+                                        <div class="mc-form-col">
+                                            <label><strong>Phone Number</strong></label>
+                                            <input type="text" id="outlet_phone" name="phone" class="widefat" placeholder="e.g. +60 4-490 8822" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mc-form-grid">
+                                        <div class="mc-form-col">
+                                            <label><strong>Latitude</strong></label>
+                                            <input type="number" step="0.0000001" id="outlet_lat" name="lat" class="widefat" placeholder="e.g. 5.3857255" />
+                                        </div>
+                                        <div class="mc-form-col">
+                                            <label><strong>Longitude</strong></label>
+                                            <input type="number" step="0.0000001" id="outlet_lng" name="lng" class="widefat" placeholder="e.g. 100.5468934" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mc-form-grid">
+                                        <div class="mc-form-col">
+                                            <label><strong>Google Maps URL</strong></label>
+                                            <input type="url" id="outlet_maps_url" name="maps_url" class="widefat" placeholder="https://maps.app.goo.gl/..." />
+                                        </div>
+                                        <div class="mc-form-col">
+                                            <label><strong>Store Photo URL</strong></label>
+                                            <div style="display:flex; gap:6px;">
+                                                <input type="text" id="outlet_photo_url" name="photo_url" class="widefat" placeholder="https://... image link" />
+                                                <button type="button" class="button" onclick="mcUploadMedia('outlet_photo_url')">Upload</button>
                                             </div>
                                         </div>
-                                    <?php endforeach; ?>
+                                    </div>
+
+                                    <div class="mc-form-row" style="margin-top:10px;">
+                                        <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+                                            <input type="checkbox" id="outlet_grinder" name="grinder" value="1" />
+                                            <span>☕ <strong>In-Store Coffee Grinder Available</strong> at this outlet</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Right Column: Product Availability Checklist -->
+                                <div class="mc-modal-col-products">
+                                    <div class="mc-products-header">
+                                        <label><strong>Product Availability Checklist</strong></label>
+                                        <div class="mc-checklist-actions">
+                                            <button type="button" class="button button-small" onclick="mcToggleAllCheckboxes(true)">Check All</button>
+                                            <button type="button" class="button button-small" onclick="mcToggleAllCheckboxes(false)">Uncheck All</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mc-products-search-wrap">
+                                        <input type="text" id="mcProductSearch" placeholder="🔍 Quick search products..." class="widefat" onkeyup="mcFilterChecklist(this.value)" />
+                                    </div>
+                                    
+                                    <div class="mc-products-checklist-box">
+                                        <?php foreach ($grouped_products as $cat_title => $cat_items) : ?>
+                                            <div class="mc-cat-section">
+                                                <h4><?php echo esc_html($cat_title); ?> (<?php echo count($cat_items); ?>)</h4>
+                                                <div class="mc-checkbox-grid">
+                                                    <?php foreach ($cat_items as $item_name) : ?>
+                                                        <label class="mc-product-check-item">
+                                                            <input type="checkbox" name="products[]" value="<?php echo esc_attr($item_name); ?>" />
+                                                            <span><?php echo esc_html($item_name); ?></span>
+                                                        </label>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             </div>
-
                         </div>
 
                         <div class="mc-modal-footer">

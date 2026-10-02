@@ -9,7 +9,9 @@
   window.mcOpenOutletModal = function() {
     $('#mcModalTitle').text('Add New Outlet');
     $('#mcOutletForm')[0].reset();
-    $('#outlet_id').value = '';
+    $('#outlet_id').val('');
+    $('#mcProductSearch').val('');
+    mcFilterChecklist('');
     $('input[name="products[]"]').prop('checked', false);
     $('#mcOutletModal').css('display', 'flex');
   };
@@ -48,6 +50,8 @@
           $('#outlet_grinder').prop('checked', o.grinder);
 
           // Check products
+          $('#mcProductSearch').val('');
+          mcFilterChecklist('');
           $('input[name="products[]"]').prop('checked', false);
           if (Array.isArray(o.products)) {
             o.products.forEach(p => {
@@ -121,6 +125,29 @@
   // Check / Uncheck All Products
   window.mcToggleAllCheckboxes = function(state) {
     $('input[name="products[]"]').prop('checked', state);
+  };
+
+  // Filter Checklist Products in Modal
+  window.mcFilterChecklist = function(term) {
+    const q = (term || '').toLowerCase().trim();
+    $('.mc-product-check-item').each(function() {
+      const text = $(this).text().toLowerCase();
+      if (!q || text.includes(q)) {
+        $(this).css('display', 'flex');
+      } else {
+        $(this).hide();
+      }
+    });
+
+    // Also show/hide category section if all items hidden
+    $('.mc-cat-section').each(function() {
+      const hasVisible = $(this).find('.mc-product-check-item:visible').length > 0;
+      if (!q || hasVisible) {
+        $(this).show();
+      } else {
+        $(this).hide();
+      }
+    });
   };
 
   // Filter Admin Table
