@@ -58,20 +58,6 @@
     return DEFAULT_PHOTOS[idx % DEFAULT_PHOTOS.length];
   }
 
-  // Switch Map Theme between Night and Normal Google Map
-  window.mcSetMapTheme = function(theme) {
-    const mapEl = $('#mcInteractiveMap');
-    if (theme === 'night') {
-      mapEl.addClass('mc-night-tiles');
-      $('#mcThemeNightBtn').addClass('active');
-      $('#mcThemeNormalBtn').removeClass('active');
-    } else {
-      mapEl.removeClass('mc-night-tiles');
-      $('#mcThemeNormalBtn').addClass('active');
-      $('#mcThemeNightBtn').removeClass('active');
-    }
-  };
-
   // Initialize Map with Country Overview
   function initMap() {
     const mapEl = document.getElementById('mcInteractiveMap');
@@ -93,8 +79,8 @@
       subdomains: ['0', '1', '2', '3']
     }).addTo(map);
 
-    // Apply Night theme by default
-    mcSetMapTheme('night');
+    // Google Maps Night Theme permanent by default
+    $('#mcInteractiveMap').addClass('mc-night-tiles');
 
     markersLayer = L.layerGroup().addTo(map);
     renderMapMarkers(allOutlets);

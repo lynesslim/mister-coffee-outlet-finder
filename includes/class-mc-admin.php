@@ -22,6 +22,7 @@ class MC_Outlet_Admin {
         add_action('wp_ajax_mc_save_product', [$this, 'ajax_save_product']);
         add_action('wp_ajax_mc_delete_product', [$this, 'ajax_delete_product']);
         add_action('wp_ajax_mc_reseed_data', [$this, 'ajax_reseed_data']);
+        add_action('wp_ajax_mc_fetch_google_photo', [$this, 'ajax_fetch_google_photo']);
     }
 
     public function register_admin_menus() {
@@ -233,11 +234,17 @@ class MC_Outlet_Admin {
                                             <input type="url" id="outlet_maps_url" name="maps_url" class="widefat" placeholder="https://maps.app.goo.gl/..." />
                                         </div>
                                         <div class="mc-form-col">
-                                            <label><strong>Store Photo URL</strong></label>
+                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                                <label style="margin:0;"><strong>Store Photo URL</strong></label>
+                                                <button type="button" class="button button-small" id="mcFetchGmapPhotoBtn" onclick="mcFetchGooglePhoto()" style="color:#1d4ed8; border-color:#93c5fd; background:#eff6ff;" title="Auto-find storefront photo via Google Places API">
+                                                    📍 Fetch from Google Maps
+                                                </button>
+                                            </div>
                                             <div style="display:flex; gap:6px;">
                                                 <input type="text" id="outlet_photo_url" name="photo_url" class="widefat" placeholder="https://... image link" />
                                                 <button type="button" class="button" onclick="mcUploadMedia('outlet_photo_url')">Upload</button>
                                             </div>
+                                            <div id="mcPhotoFetchStatus" style="font-size:11px; margin-top:4px; display:none;"></div>
                                         </div>
                                     </div>
 
@@ -421,10 +428,20 @@ class MC_Outlet_Admin {
                             </td>
                         </tr>
                         <tr>
-                            <th scope="row"><label for="mc_google_maps_api_key">Google Maps API Key (Optional)</label></th>
+                            <th scope="row"><label for="mc_google_maps_api_key">Google Places & Maps API Key</label></th>
                             <td>
-                                <input name="mc_google_maps_api_key" type="text" id="mc_google_maps_api_key" value="<?php echo esc_attr($api_key); ?>" class="regular-text" />
-                                <p class="description">Optional: If left blank, the plugin uses direct interactive Google Map embeds without requiring any paid API key.</p>
+                                <input name="mc_google_maps_api_key" type="text" id="mc_google_maps_api_key" value="<?php echo esc_attr($api_key); ?>" class="regular-text" placeholder="AIzaSy..." />
+                                <p class="description">Used for <strong>"📍 Fetch Photo from Google Maps"</strong> auto-pulling and Street View photos.</p>
+                                <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:12px; margin-top:8px; font-size:12px; line-height:1.6; max-width:600px;">
+                                    <strong>📖 How to get your Google Places API Key:</strong>
+                                    <ol style="margin:6px 0 0 16px; padding:0;">
+                                        <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> and create or select a project.</li>
+                                        <li>Go to <strong>APIs & Services &gt; Library</strong>.</li>
+                                        <li>Search and enable <strong>Places API</strong> (or Places API New) and <strong>Street View Static API</strong>.</li>
+                                        <li>Go to <strong>APIs & Services &gt; Credentials</strong> and click <strong>Create Credentials &gt; API Key</strong>.</li>
+                                        <li>Copy your API key, paste it here, and click <strong>Save Settings</strong>.</li>
+                                    </ol>
+                                </div>
                             </td>
                         </tr>
                     </table>
@@ -567,6 +584,93 @@ class MC_Outlet_Admin {
         }
         MC_Outlet_DB::seed_data_if_empty(true);
         wp_send_json_success(['message' => 'Database successfully restored with all 170 outlets!']);
+    }
+
+    public function ajax_fetch_google_photo() {
+        check_ajax_referer('mc_admin_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $api_key = get_option('mc_google_maps_api_key', '');
+        if (empty($api_key)) {
+            wp_send_json_error('Google Places API key is missing. Please enter your API key in "Settings & Sync" first.');
+        }
+
+        $name = sanitize_text_field($_POST['name'] ?? '');
+        $address = sanitize_text_field($_POST['address'] ?? '');
+        $lat = floatval($_POST['lat'] ?? 0);
+        $lng = floatval($_POST['lng'] ?? 0);
+
+        if (empty($name)) {
+            wp_send_json_error('Please enter an Outlet Name first.');
+        }
+
+        // Search text: Outlet name + address for high precision
+        $search_query = trim($name . ' ' . $address);
+
+        // 1. Try Google Places Text Search API
+        $text_url = add_query_arg([
+            'query' => $search_query,
+            'key' => $api_key,
+        ], 'https://maps.googleapis.com/maps/api/place/textsearch/json');
+
+        if ($lat && $lng) {
+            $text_url .= '&location=' . $lat . ',' . $lng . '&radius=1000';
+        }
+
+        $response = wp_remote_get($text_url, ['timeout' => 12]);
+        if (is_wp_error($response)) {
+            wp_send_json_error('Connection to Google failed: ' . $response->get_error_message());
+        }
+
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (isset($data['status']) && $data['status'] === 'REQUEST_DENIED') {
+            $err_msg = $data['error_message'] ?? 'API Key invalid or Places API not enabled on Google Cloud.';
+            wp_send_json_error('Google API Error: ' . $err_msg);
+        }
+
+        // Check if results with photos exist
+        if (!empty($data['results'])) {
+            foreach ($data['results'] as $place) {
+                if (!empty($place['photos'])) {
+                    $photo_ref = $place['photos'][0]['photo_reference'];
+                    $photo_url = add_query_arg([
+                        'maxwidth' => 1000,
+                        'photo_reference' => $photo_ref,
+                        'key' => $api_key,
+                    ], 'https://maps.googleapis.com/maps/api/place/photo');
+
+                    wp_send_json_success([
+                        'photo_url' => $photo_url,
+                        'place_name' => $place['name'] ?? $name
+                    ]);
+                    return;
+                }
+            }
+        }
+
+        // 2. Fallback: If no place photos, use Street View Static photo if lat/lng are set
+        if ($lat && $lng) {
+            $street_view_url = add_query_arg([
+                'size' => '800x450',
+                'location' => $lat . ',' . $lng,
+                'fov' => 90,
+                'heading' => 0,
+                'pitch' => 0,
+                'key' => $api_key,
+            ], 'https://maps.googleapis.com/maps/api/streetview');
+
+            wp_send_json_success([
+                'photo_url' => $street_view_url,
+                'is_street_view' => true,
+                'message' => 'Street View photo generated!'
+            ]);
+            return;
+        }
+
+        wp_send_json_error('No photo found on Google Maps for "' . esc_html($name) . '". Try adding more address details.');
     }
 }
 new MC_Outlet_Admin();

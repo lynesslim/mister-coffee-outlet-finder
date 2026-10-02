@@ -3,7 +3,7 @@
  * Plugin Name: Mister Coffee — Outlet Location & Stock Finder
  * Plugin URI: https://mistercoffee.com.my
  * Description: Interactive searchable and filterable retail outlet finder with Google Maps and in-store product availability matrices.
- * Version: 1.2.1
+ * Version: 1.3.0
  * Author: Mister Coffee / Supercraft
  * Author URI: https://mistercoffee.com.my
  * Text Domain: mc-outlet-finder
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('MC_OUTLET_VERSION', '1.2.1');
+define('MC_OUTLET_VERSION', '1.3.0');
 define('MC_OUTLET_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MC_OUTLET_PLUGIN_URL', plugin_dir_url(__FILE__));
 

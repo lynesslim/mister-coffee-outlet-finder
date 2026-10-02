@@ -247,16 +247,10 @@ class MC_Outlet_Shortcode {
                         <span class="pulse-dot"></span>
                         <span id="mcMapStatusLabel">Showing <?php echo count($outlets); ?> Outlets in Malaysia & Singapore</span>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <div class="mc-map-theme-toggle">
-                            <button type="button" class="mc-theme-btn active" id="mcThemeNightBtn" onclick="mcSetMapTheme('night')" title="Google Maps Night Theme">🌙 Night</button>
-                            <button type="button" class="mc-theme-btn" id="mcThemeNormalBtn" onclick="mcSetMapTheme('normal')" title="Standard Google Maps">☀️ Normal</button>
-                        </div>
-                        <button type="button" class="mc-map-reset-btn" onclick="mcResetToCountryView()" title="Zoom out to whole country">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                            Country View
-                        </button>
-                    </div>
+                    <button type="button" class="mc-map-reset-btn" onclick="mcResetToCountryView()" title="Zoom out to whole country">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        Country View
+                    </button>
                 </div>
 
                 <!-- Leaflet interactive multi-marker map -->

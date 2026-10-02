@@ -306,4 +306,50 @@
     });
   };
 
+  // Fetch Storefront Photo from Google Places API
+  window.mcFetchGooglePhoto = function() {
+    const name = $('#outlet_name').val().trim();
+    const address = $('#outlet_address').val().trim();
+    const lat = $('#outlet_lat').val().trim();
+    const lng = $('#outlet_lng').val().trim();
+    const btn = $('#mcFetchGmapPhotoBtn');
+    const status = $('#mcPhotoFetchStatus');
+
+    if (!name) {
+      alert('Please enter the Outlet Name first.');
+      $('#outlet_name').focus();
+      return;
+    }
+
+    btn.prop('disabled', true).text('⏳ Fetching...');
+    status.show().html('<span style="color:#2563eb;">Searching Google Places...</span>');
+
+    $.ajax({
+      url: mcAdminData.ajax_url,
+      type: 'POST',
+      data: {
+        action: 'mc_fetch_google_photo',
+        nonce: mcAdminData.nonce,
+        name: name,
+        address: address,
+        lat: lat,
+        lng: lng
+      },
+      success: function(res) {
+        btn.prop('disabled', false).html('📍 Fetch from Google Maps');
+        if (res.success && res.data.photo_url) {
+          $('#outlet_photo_url').val(res.data.photo_url);
+          const label = res.data.is_street_view ? 'Street View photo generated!' : 'Photo found on Google Places!';
+          status.html(`<span style="color:#16a34a; font-weight:600;">✅ ${label}</span>`);
+        } else {
+          status.html(`<span style="color:#dc2626;">❌ ${res.data || 'No photo found.'}</span>`);
+        }
+      },
+      error: function() {
+        btn.prop('disabled', false).html('📍 Fetch from Google Maps');
+        status.html('<span style="color:#dc2626;">❌ Request failed. Check server connection.</span>');
+      }
+    });
+  };
+
 })(jQuery);
