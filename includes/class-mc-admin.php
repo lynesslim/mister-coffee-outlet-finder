@@ -437,7 +437,7 @@ class MC_Outlet_Admin {
                                     <ol style="margin:6px 0 0 16px; padding:0;">
                                         <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> and create or select a project.</li>
                                         <li>Go to <strong>APIs & Services &gt; Library</strong>.</li>
-                                        <li>Search and enable <strong>Places API</strong> (or Places API New) and <strong>Street View Static API</strong>.</li>
+                                        <li>Search and enable <strong>Places API (New)</strong> and <strong>Street View Static API</strong>.</li>
                                         <li>Go to <strong>APIs & Services &gt; Credentials</strong> and click <strong>Create Credentials &gt; API Key</strong>.</li>
                                         <li>Copy your API key, paste it here, and click <strong>Save Settings</strong>.</li>
                                     </ol>
@@ -606,52 +606,113 @@ class MC_Outlet_Admin {
             wp_send_json_error('Please enter an Outlet Name first.');
         }
 
-        // Search text: Outlet name + address for high precision
         $search_query = trim($name . ' ' . $address);
 
-        // 1. Try Google Places Text Search API
-        $text_url = add_query_arg([
+        // -------------------------------------------------------------
+        // 1. PRIMARY: Modern Google Places API (New) - places.googleapis.com
+        // -------------------------------------------------------------
+        $places_new_url = 'https://places.googleapis.com/v1/places:searchText';
+        $payload = [
+            'textQuery' => $search_query,
+        ];
+        if ($lat && $lng) {
+            $payload['locationBias'] = [
+                'circle' => [
+                    'center' => [
+                        'latitude' => $lat,
+                        'longitude' => $lng,
+                    ],
+                    'radius' => 2000.0,
+                ],
+            ];
+        }
+
+        $response_new = wp_remote_post($places_new_url, [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'X-Goog-Api-Key' => $api_key,
+                'X-Goog-FieldMask' => 'places.id,places.displayName,places.photos',
+            ],
+            'body' => wp_json_encode($payload),
+            'timeout' => 15,
+        ]);
+
+        if (!is_wp_error($response_new)) {
+            $code_new = wp_remote_retrieve_response_code($response_new);
+            $body_new = json_decode(wp_remote_retrieve_body($response_new), true);
+
+            if ($code_new === 200 && !empty($body_new['places'])) {
+                foreach ($body_new['places'] as $place) {
+                    if (!empty($place['photos'])) {
+                        $photo_name = $place['photos'][0]['name']; // e.g. "places/ChIJ.../photos/..."
+                        
+                        // Query the photo media URL with skipHttpRedirect=true for direct CDN link
+                        $media_query_url = 'https://places.googleapis.com/v1/' . $photo_name . '/media?maxWidthPx=1000&maxHeightPx=800&skipHttpRedirect=true&key=' . urlencode($api_key);
+                        $media_resp = wp_remote_get($media_query_url, ['timeout' => 12]);
+
+                        $photo_url = '';
+                        if (!is_wp_error($media_resp)) {
+                            $media_data = json_decode(wp_remote_retrieve_body($media_resp), true);
+                            if (!empty($media_data['photoUri'])) {
+                                $photo_url = $media_data['photoUri'];
+                            }
+                        }
+
+                        // If skipHttpRedirect didn't return a URI, use the direct media endpoint
+                        if (empty($photo_url)) {
+                            $photo_url = 'https://places.googleapis.com/v1/' . $photo_name . '/media?maxWidthPx=1000&maxHeightPx=800&key=' . urlencode($api_key);
+                        }
+
+                        wp_send_json_success([
+                            'photo_url' => $photo_url,
+                            'place_name' => $place['displayName']['text'] ?? $name,
+                            'source' => 'Places API (New)'
+                        ]);
+                        return;
+                    }
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 2. SECONDARY: Legacy Places API (Text Search) for older projects
+        // -------------------------------------------------------------
+        $legacy_text_url = add_query_arg([
             'query' => $search_query,
             'key' => $api_key,
         ], 'https://maps.googleapis.com/maps/api/place/textsearch/json');
 
         if ($lat && $lng) {
-            $text_url .= '&location=' . $lat . ',' . $lng . '&radius=1000';
+            $legacy_text_url .= '&location=' . $lat . ',' . $lng . '&radius=1000';
         }
 
-        $response = wp_remote_get($text_url, ['timeout' => 12]);
-        if (is_wp_error($response)) {
-            wp_send_json_error('Connection to Google failed: ' . $response->get_error_message());
-        }
+        $response_legacy = wp_remote_get($legacy_text_url, ['timeout' => 12]);
+        if (!is_wp_error($response_legacy)) {
+            $data_legacy = json_decode(wp_remote_retrieve_body($response_legacy), true);
+            if (!empty($data_legacy['results'])) {
+                foreach ($data_legacy['results'] as $place) {
+                    if (!empty($place['photos'])) {
+                        $photo_ref = $place['photos'][0]['photo_reference'];
+                        $photo_url = add_query_arg([
+                            'maxwidth' => 1000,
+                            'photo_reference' => $photo_ref,
+                            'key' => $api_key,
+                        ], 'https://maps.googleapis.com/maps/api/place/photo');
 
-        $data = json_decode(wp_remote_retrieve_body($response), true);
-
-        if (isset($data['status']) && $data['status'] === 'REQUEST_DENIED') {
-            $err_msg = $data['error_message'] ?? 'API Key invalid or Places API not enabled on Google Cloud.';
-            wp_send_json_error('Google API Error: ' . $err_msg);
-        }
-
-        // Check if results with photos exist
-        if (!empty($data['results'])) {
-            foreach ($data['results'] as $place) {
-                if (!empty($place['photos'])) {
-                    $photo_ref = $place['photos'][0]['photo_reference'];
-                    $photo_url = add_query_arg([
-                        'maxwidth' => 1000,
-                        'photo_reference' => $photo_ref,
-                        'key' => $api_key,
-                    ], 'https://maps.googleapis.com/maps/api/place/photo');
-
-                    wp_send_json_success([
-                        'photo_url' => $photo_url,
-                        'place_name' => $place['name'] ?? $name
-                    ]);
-                    return;
+                        wp_send_json_success([
+                            'photo_url' => $photo_url,
+                            'place_name' => $place['name'] ?? $name,
+                            'source' => 'Legacy Places API'
+                        ]);
+                        return;
+                    }
                 }
             }
         }
 
-        // 2. Fallback: If no place photos, use Street View Static photo if lat/lng are set
+        // -------------------------------------------------------------
+        // 3. TERTIARY: Street View Static API if lat/lng are available
+        // -------------------------------------------------------------
         if ($lat && $lng) {
             $street_view_url = add_query_arg([
                 'size' => '800x450',
@@ -668,6 +729,11 @@ class MC_Outlet_Admin {
                 'message' => 'Street View photo generated!'
             ]);
             return;
+        }
+
+        // If Places API (New) returned an error message, show it to help the user
+        if (isset($body_new['error']['message'])) {
+            wp_send_json_error('Google API Error: ' . $body_new['error']['message']);
         }
 
         wp_send_json_error('No photo found on Google Maps for "' . esc_html($name) . '". Try adding more address details.');
