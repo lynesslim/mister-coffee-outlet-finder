@@ -199,6 +199,13 @@ class MC_Outlet_DB {
     }
 
     /**
+     * Alias for get_outlets()
+     */
+    public static function get_all_outlets($args = []) {
+        return self::get_outlets($args);
+    }
+
+    /**
      * Get single outlet by ID
      */
     public static function get_outlet($id) {

@@ -998,7 +998,7 @@ class MC_Outlet_Admin {
         }
 
         $scope = sanitize_text_field($_POST['scope'] ?? 'missing');
-        $all_outlets = MC_Outlet_DB::get_all_outlets();
+        $all_outlets = MC_Outlet_DB::get_outlets();
 
         $missing_outlets = [];
         $synced_outlets = [];
@@ -1014,19 +1014,19 @@ class MC_Outlet_Admin {
         $target_outlets = ($scope === 'all') ? $all_outlets : $missing_outlets;
 
         wp_send_json_success([
-            'outlets' => array_map(function($o) {
+            'outlets' => array_values(array_map(function($o) {
                 return [
                     'id' => (int) $o['id'],
                     'name' => $o['name'],
                     'retailer' => $o['retailer'] ?? '',
                     'state' => $o['state'] ?? '',
                     'address' => $o['address'] ?? '',
-                    'lat' => (float) ($o['latitude'] ?? 0),
-                    'lng' => (float) ($o['longitude'] ?? 0),
+                    'lat' => (float) ($o['lat'] ?? $o['latitude'] ?? 0),
+                    'lng' => (float) ($o['lng'] ?? $o['longitude'] ?? 0),
                     'has_photo' => !empty($o['photo_url']),
                     'photo_url' => $o['photo_url'] ?? '',
                 ];
-            }, $target_outlets),
+            }, $target_outlets)),
             'total_count' => count($all_outlets),
             'missing_count' => count($missing_outlets),
             'synced_count' => count($synced_outlets),

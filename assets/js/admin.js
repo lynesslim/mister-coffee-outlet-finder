@@ -450,8 +450,14 @@
         
         mcRunSyncStep();
       },
-      error: function() {
-        mcLogToTerminal('Failed to retrieve outlets from server.', 'error');
+      error: function(xhr, status, error) {
+        let msg = 'Failed to retrieve outlets from server.';
+        if (xhr.responseJSON && xhr.responseJSON.data) {
+          msg += ' Reason: ' + xhr.responseJSON.data;
+        } else if (xhr.responseText) {
+          msg += ' Status: ' + xhr.status + ' (' + error + ')';
+        }
+        mcLogToTerminal(msg, 'error');
         mcStopBatchPhotoSync();
       }
     });
