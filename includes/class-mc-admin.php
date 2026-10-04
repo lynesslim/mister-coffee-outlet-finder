@@ -23,6 +23,7 @@ class MC_Outlet_Admin {
         add_action('wp_ajax_mc_delete_product', [$this, 'ajax_delete_product']);
         add_action('wp_ajax_mc_reseed_data', [$this, 'ajax_reseed_data']);
         add_action('wp_ajax_mc_fetch_google_photo', [$this, 'ajax_fetch_google_photo']);
+        add_action('wp_ajax_mc_get_sync_outlets', [$this, 'ajax_get_sync_outlets']);
     }
 
     public function register_admin_menus() {
@@ -56,6 +57,15 @@ class MC_Outlet_Admin {
 
         add_submenu_page(
             'mc-outlets',
+            __('Google Photos Sync', 'mc-outlet-finder'),
+            __('Google Photos Sync', 'mc-outlet-finder'),
+            'manage_options',
+            'mc-photo-sync',
+            [$this, 'render_photo_sync_page']
+        );
+
+        add_submenu_page(
+            'mc-outlets',
             __('Settings & Data Sync', 'mc-outlet-finder'),
             __('Settings & Sync', 'mc-outlet-finder'),
             'manage_options',
@@ -65,7 +75,7 @@ class MC_Outlet_Admin {
     }
 
     public function enqueue_admin_assets($hook) {
-        if (strpos($hook, 'mc-outlets') === false && strpos($hook, 'mc-products') === false && strpos($hook, 'mc-settings') === false) {
+        if (strpos($hook, 'mc-outlets') === false && strpos($hook, 'mc-products') === false && strpos($hook, 'mc-settings') === false && strpos($hook, 'mc-photo-sync') === false) {
             return;
         }
 
@@ -86,13 +96,8 @@ class MC_Outlet_Admin {
         $outlets = MC_Outlet_DB::get_outlets();
         $products = MC_Outlet_DB::get_products();
         
-        // Group products by category
-        $grouped_products = [];
-        foreach ($products as $p) {
-            $cat = !empty($p['category']) ? $p['category'] : 'Other';
-            $grouped_products[$cat][] = $p['name'];
-        }
-
+        $synced_count = count(array_filter($outlets, fn($x) => !empty($x['photo_url'])));
+        $missing_count = count($outlets) - $synced_count;
         ?>
         <div class="wrap mc-admin-wrap">
             <div class="mc-admin-header">
@@ -100,39 +105,68 @@ class MC_Outlet_Admin {
                     <h1 class="mc-admin-title">Mister Coffee Retail Outlets</h1>
                     <p class="mc-admin-sub">Manage outlet locations, Google Maps coordinates, in-store grinders, and product stock availability.</p>
                 </div>
-                <button type="button" class="button button-primary mc-btn-primary" onclick="mcOpenOutletModal()">
-                    + Add New Outlet
-                </button>
+                <div style="display:flex; gap:8px;">
+                    <a href="<?php echo admin_url('admin.php?page=mc-photo-sync'); ?>" class="button button-secondary" style="display:inline-flex; align-items:center; gap:5px; font-weight:600;">
+                        📸 Bulk Sync Google Photos
+                    </a>
+                    <button type="button" class="button button-primary mc-btn-primary" onclick="mcOpenOutletModal()">
+                        + Add New Outlet
+                    </button>
+                </div>
             </div>
 
             <div class="mc-admin-card">
-                <div class="mc-table-controls">
-                    <input type="text" id="mcAdminSearch" placeholder="Search outlets by name, mall, or state..." oninput="mcFilterAdminTable()" class="regular-text" />
-                    <span class="mc-count-badge">Total Outlets: <strong id="mcTotalCount"><?php echo count($outlets); ?></strong></span>
+                <div class="mc-table-controls" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                        <input type="text" id="mcAdminSearch" placeholder="Search outlets by name, mall, or state..." oninput="mcFilterAdminTable()" class="regular-text" style="min-width:280px;" />
+                        <div class="mc-photo-filter-group" style="display:inline-flex; gap:4px;">
+                            <button type="button" class="button mc-photo-filter-btn active" data-filter="all" onclick="mcFilterPhotoStatus('all')">
+                                All (<?php echo count($outlets); ?>)
+                            </button>
+                            <button type="button" class="button mc-photo-filter-btn" data-filter="synced" onclick="mcFilterPhotoStatus('synced')">
+                                ✅ With Photo (<?php echo $synced_count; ?>)
+                            </button>
+                            <button type="button" class="button mc-photo-filter-btn" data-filter="missing" onclick="mcFilterPhotoStatus('missing')">
+                                ⚠️ Missing Photo (<?php echo $missing_count; ?>)
+                            </button>
+                        </div>
+                    </div>
+                    <span class="mc-count-badge">Showing: <strong id="mcTotalCount"><?php echo count($outlets); ?></strong></span>
                 </div>
 
                 <table class="wp-list-table widefat fixed striped mc-admin-table" id="mcOutletsTable">
                     <thead>
                         <tr>
-                            <th width="50">ID</th>
-                            <th width="220">Outlet Name</th>
-                            <th width="120">Retailer</th>
+                            <th width="45">ID</th>
+                            <th width="65">Photo</th>
+                            <th width="200">Outlet Name</th>
+                            <th width="110">Retailer</th>
                             <th width="120">State / Region</th>
-                            <th width="90">Grinder</th>
-                            <th width="120">Products Stocked</th>
-                            <th>Google Maps URL / Coordinates</th>
-                            <th width="140">Actions</th>
+                            <th width="80">Grinder</th>
+                            <th width="110">Products</th>
+                            <th>Coordinates / Map</th>
+                            <th width="130">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($outlets)) : ?>
-                            <tr><td colspan="8" style="text-align:center; padding:30px;">No outlets found. Click "Settings & Sync" to import the seed data.</td></tr>
+                            <tr><td colspan="9" style="text-align:center; padding:30px;">No outlets found. Click "Settings & Sync" to import the seed data.</td></tr>
                         <?php else : ?>
                             <?php foreach ($outlets as $o) : 
                                 $prod_count = count($o['products']);
+                                $has_photo = !empty($o['photo_url']);
                             ?>
-                                <tr data-id="<?php echo esc_attr($o['id']); ?>" data-name="<?php echo esc_attr(strtolower($o['name'])); ?>" data-state="<?php echo esc_attr(strtolower($o['state'])); ?>">
+                                <tr data-id="<?php echo esc_attr($o['id']); ?>" data-name="<?php echo esc_attr(strtolower($o['name'])); ?>" data-state="<?php echo esc_attr(strtolower($o['state'])); ?>" data-has-photo="<?php echo $has_photo ? '1' : '0'; ?>">
                                     <td><strong>#<?php echo esc_html($o['id']); ?></strong></td>
+                                    <td>
+                                        <?php if ($has_photo) : ?>
+                                            <a href="<?php echo esc_url($o['photo_url']); ?>" target="_blank" title="View Full Google Image">
+                                                <img src="<?php echo esc_url($o['photo_url']); ?>" style="width:38px; height:38px; object-fit:cover; border-radius:4px; border:1px solid #d1d5db; display:block;" />
+                                            </a>
+                                        <?php else : ?>
+                                            <span style="display:inline-block; font-size:10px; font-weight:700; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; padding:2px 5px; border-radius:3px;">No Photo</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <strong class="row-title"><?php echo esc_html($o['name']); ?></strong>
                                     </td>
@@ -166,136 +200,334 @@ class MC_Outlet_Admin {
             </div>
 
             <!-- Outlet Edit / Create Modal -->
-            <div id="mcOutletModal" class="mc-modal-backdrop" style="display:none;">
-                <div class="mc-modal-dialog">
-                    <div class="mc-modal-header">
-                        <h2 id="mcModalTitle">Add New Outlet</h2>
-                        <button type="button" class="mc-modal-close" onclick="mcCloseOutletModal()">&times;</button>
-                    </div>
-                    <form id="mcOutletForm" onsubmit="mcSaveOutletForm(event)">
-                        <input type="hidden" id="outlet_id" name="id" value="" />
-                        
-                        <div class="mc-modal-body">
-                            <div class="mc-modal-two-col">
-                                <!-- Left Column: Outlet Details -->
-                                <div class="mc-modal-col-details">
-                                    <div class="mc-form-grid">
-                                        <div class="mc-form-col">
-                                            <label><strong>Outlet Name *</strong></label>
-                                            <input type="text" id="outlet_name" name="name" required class="widefat" placeholder="e.g. Mercato Kulim" />
-                                        </div>
-                                        <div class="mc-form-col">
-                                            <label><strong>Retailer / Chain</strong></label>
-                                            <input type="text" id="outlet_retailer" name="retailer" class="widefat" placeholder="e.g. Lotus, Mercato, AEON, Showroom" />
-                                        </div>
-                                    </div>
+            <?php $this->render_outlet_modal($products); ?>
 
-                                    <div class="mc-form-grid">
-                                        <div class="mc-form-col">
-                                            <label><strong>State</strong></label>
-                                            <input type="text" id="outlet_state" name="state" class="widefat" placeholder="e.g. KL & SELANGOR, KEDAH, PENANG, JOHOR" />
-                                        </div>
-                                        <div class="mc-form-col">
-                                            <label><strong>Region</strong></label>
-                                            <input type="text" id="outlet_region" name="region" class="widefat" placeholder="e.g. Northern, Central, Southern, East Coast" />
-                                        </div>
-                                    </div>
+        </div>
+        <?php
+    }
 
-                                    <div class="mc-form-row">
-                                        <label><strong>Address / Storefront Location</strong></label>
-                                        <textarea id="outlet_address" name="address" rows="3" class="widefat" placeholder="e.g. Lot G-12, Ground Floor, Mall Name..."></textarea>
-                                    </div>
+    /**
+     * Shared Outlet Modal Renderer
+     */
+    private function render_outlet_modal($products = null) {
+        if ($products === null) {
+            $products = MC_Outlet_DB::get_products();
+        }
 
-                                    <div class="mc-form-grid">
-                                        <div class="mc-form-col">
-                                            <label><strong>Operating Hours</strong></label>
-                                            <input type="text" id="outlet_operating_hours" name="operating_hours" class="widefat" value="Mon - Sun: 10:00 AM - 10:00 PM" />
-                                        </div>
-                                        <div class="mc-form-col">
-                                            <label><strong>Phone Number</strong></label>
-                                            <input type="text" id="outlet_phone" name="phone" class="widefat" placeholder="e.g. +60 4-490 8822" />
-                                        </div>
+        // Group products by category
+        $grouped_products = [];
+        foreach ($products as $p) {
+            $cat = !empty($p['category']) ? $p['category'] : 'Other Products';
+            $grouped_products[$cat][] = $p['name'];
+        }
+        ?>
+        <div id="mcOutletModal" class="mc-modal-backdrop" style="display:none;">
+            <div class="mc-modal-dialog">
+                <div class="mc-modal-header">
+                    <h2 id="mcModalTitle">Add New Outlet</h2>
+                    <button type="button" class="mc-modal-close" onclick="mcCloseOutletModal()">&times;</button>
+                </div>
+                <form id="mcOutletForm" onsubmit="mcSaveOutletForm(event)">
+                    <input type="hidden" id="outlet_id" name="id" value="" />
+                    
+                    <div class="mc-modal-body">
+                        <div class="mc-modal-two-col">
+                            <!-- Left Column: Outlet Details -->
+                            <div class="mc-modal-col-details">
+                                <div class="mc-form-grid">
+                                    <div class="mc-form-col">
+                                        <label><strong>Outlet Name *</strong></label>
+                                        <input type="text" id="outlet_name" name="name" required class="widefat" placeholder="e.g. Mercato Kulim" />
                                     </div>
-
-                                    <div class="mc-form-grid">
-                                        <div class="mc-form-col">
-                                            <label><strong>Latitude</strong></label>
-                                            <input type="number" step="0.0000001" id="outlet_lat" name="lat" class="widefat" placeholder="e.g. 5.3857255" />
-                                        </div>
-                                        <div class="mc-form-col">
-                                            <label><strong>Longitude</strong></label>
-                                            <input type="number" step="0.0000001" id="outlet_lng" name="lng" class="widefat" placeholder="e.g. 100.5468934" />
-                                        </div>
-                                    </div>
-
-                                    <div class="mc-form-grid">
-                                        <div class="mc-form-col">
-                                            <label><strong>Google Maps URL</strong></label>
-                                            <input type="url" id="outlet_maps_url" name="maps_url" class="widefat" placeholder="https://maps.app.goo.gl/..." />
-                                        </div>
-                                        <div class="mc-form-col">
-                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                                <label style="margin:0;"><strong>Store Photo URL</strong></label>
-                                                <button type="button" class="button button-small" id="mcFetchGmapPhotoBtn" onclick="mcFetchGooglePhoto()" style="color:#1d4ed8; border-color:#93c5fd; background:#eff6ff;" title="Auto-find storefront photo via Google Places API">
-                                                    📍 Fetch from Google Maps
-                                                </button>
-                                            </div>
-                                            <div style="display:flex; gap:6px;">
-                                                <input type="text" id="outlet_photo_url" name="photo_url" class="widefat" placeholder="https://... image link" />
-                                                <button type="button" class="button" onclick="mcUploadMedia('outlet_photo_url')">Upload</button>
-                                            </div>
-                                            <div id="mcPhotoFetchStatus" style="font-size:11px; margin-top:4px; display:none;"></div>
-                                        </div>
-                                    </div>
-
-                                    <div class="mc-form-row" style="margin-top:10px;">
-                                        <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
-                                            <input type="checkbox" id="outlet_grinder" name="grinder" value="1" />
-                                            <span>☕ <strong>In-Store Coffee Grinder Available</strong> at this outlet</span>
-                                        </label>
+                                    <div class="mc-form-col">
+                                        <label><strong>Retailer / Chain</strong></label>
+                                        <input type="text" id="outlet_retailer" name="retailer" class="widefat" placeholder="e.g. Lotus, Mercato, AEON, Showroom" />
                                     </div>
                                 </div>
 
-                                <!-- Right Column: Product Availability Checklist -->
-                                <div class="mc-modal-col-products">
-                                    <div class="mc-products-header">
-                                        <label><strong>Product Availability Checklist</strong></label>
-                                        <div class="mc-checklist-actions">
-                                            <button type="button" class="button button-small" onclick="mcToggleAllCheckboxes(true)">Check All</button>
-                                            <button type="button" class="button button-small" onclick="mcToggleAllCheckboxes(false)">Uncheck All</button>
+                                <div class="mc-form-grid">
+                                    <div class="mc-form-col">
+                                        <label><strong>State</strong></label>
+                                        <input type="text" id="outlet_state" name="state" class="widefat" placeholder="e.g. KL & SELANGOR, KEDAH, PENANG, JOHOR" />
+                                    </div>
+                                    <div class="mc-form-col">
+                                        <label><strong>Region</strong></label>
+                                        <input type="text" id="outlet_region" name="region" class="widefat" placeholder="e.g. Northern, Central, Southern, East Coast" />
+                                    </div>
+                                </div>
+
+                                <div class="mc-form-row">
+                                    <label><strong>Address / Storefront Location</strong></label>
+                                    <textarea id="outlet_address" name="address" rows="3" class="widefat" placeholder="e.g. Lot G-12, Ground Floor, Mall Name..."></textarea>
+                                </div>
+
+                                <div class="mc-form-grid">
+                                    <div class="mc-form-col">
+                                        <label><strong>Operating Hours</strong></label>
+                                        <input type="text" id="outlet_operating_hours" name="operating_hours" class="widefat" value="Mon - Sun: 10:00 AM - 10:00 PM" />
+                                    </div>
+                                    <div class="mc-form-col">
+                                        <label><strong>Phone Number</strong></label>
+                                        <input type="text" id="outlet_phone" name="phone" class="widefat" placeholder="e.g. +60 4-490 8822" />
+                                    </div>
+                                </div>
+
+                                <div class="mc-form-grid">
+                                    <div class="mc-form-col">
+                                        <label><strong>Latitude</strong></label>
+                                        <input type="number" step="0.0000001" id="outlet_lat" name="lat" class="widefat" placeholder="e.g. 5.3857255" />
+                                    </div>
+                                    <div class="mc-form-col">
+                                        <label><strong>Longitude</strong></label>
+                                        <input type="number" step="0.0000001" id="outlet_lng" name="lng" class="widefat" placeholder="e.g. 100.5468934" />
+                                    </div>
+                                </div>
+
+                                <div class="mc-form-grid">
+                                    <div class="mc-form-col">
+                                        <label><strong>Google Maps URL</strong></label>
+                                        <input type="url" id="outlet_maps_url" name="maps_url" class="widefat" placeholder="https://maps.app.goo.gl/..." />
+                                    </div>
+                                    <div class="mc-form-col">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                            <label style="margin:0;"><strong>Store Photo URL</strong></label>
+                                            <button type="button" class="button button-small" id="mcFetchGmapPhotoBtn" onclick="mcFetchGooglePhoto()" style="color:#1d4ed8; border-color:#93c5fd; background:#eff6ff;" title="Auto-find storefront photo via Google Places API">
+                                                📍 Fetch from Google Maps
+                                            </button>
                                         </div>
+                                        <div style="display:flex; gap:6px;">
+                                            <input type="text" id="outlet_photo_url" name="photo_url" class="widefat" placeholder="https://... image link" />
+                                            <button type="button" class="button" onclick="mcUploadMedia('outlet_photo_url')">Upload</button>
+                                        </div>
+                                        <div id="mcPhotoFetchStatus" style="font-size:11px; margin-top:4px; display:none;"></div>
                                     </div>
-                                    
-                                    <div class="mc-products-search-wrap">
-                                        <input type="text" id="mcProductSearch" placeholder="🔍 Quick search products..." class="widefat" onkeyup="mcFilterChecklist(this.value)" />
+                                </div>
+
+                                <div class="mc-form-row" style="margin-top:10px;">
+                                    <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+                                        <input type="checkbox" id="outlet_grinder" name="grinder" value="1" />
+                                        <span>☕ <strong>In-Store Coffee Grinder Available</strong> at this outlet</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Product Availability Checklist -->
+                            <div class="mc-modal-col-products">
+                                <div class="mc-products-header">
+                                    <label><strong>Product Availability Checklist</strong></label>
+                                    <div class="mc-checklist-actions">
+                                        <button type="button" class="button button-small" onclick="mcToggleAllCheckboxes(true)">Check All</button>
+                                        <button type="button" class="button button-small" onclick="mcToggleAllCheckboxes(false)">Uncheck All</button>
                                     </div>
-                                    
-                                    <div class="mc-products-checklist-box">
-                                        <?php foreach ($grouped_products as $cat_title => $cat_items) : ?>
-                                            <div class="mc-cat-section">
-                                                <h4><?php echo esc_html($cat_title); ?> (<?php echo count($cat_items); ?>)</h4>
-                                                <div class="mc-checkbox-grid">
-                                                    <?php foreach ($cat_items as $item_name) : ?>
-                                                        <label class="mc-product-check-item">
-                                                            <input type="checkbox" name="products[]" value="<?php echo esc_attr($item_name); ?>" />
-                                                            <span><?php echo esc_html($item_name); ?></span>
-                                                        </label>
-                                                    <?php endforeach; ?>
-                                                </div>
+                                </div>
+                                
+                                <div class="mc-products-search-wrap">
+                                    <input type="text" id="mcProductSearch" placeholder="🔍 Quick search products..." class="widefat" onkeyup="mcFilterChecklist(this.value)" />
+                                </div>
+                                
+                                <div class="mc-products-checklist-box">
+                                    <?php foreach ($grouped_products as $cat_title => $cat_items) : ?>
+                                        <div class="mc-cat-section">
+                                            <h4><?php echo esc_html($cat_title); ?> (<?php echo count($cat_items); ?>)</h4>
+                                            <div class="mc-checkbox-grid">
+                                                <?php foreach ($cat_items as $item_name) : ?>
+                                                    <label class="mc-product-check-item">
+                                                        <input type="checkbox" name="products[]" value="<?php echo esc_attr($item_name); ?>" />
+                                                        <span><?php echo esc_html($item_name); ?></span>
+                                                    </label>
+                                                <?php endforeach; ?>
                                             </div>
-                                        <?php endforeach; ?>
-                                    </div>
+                                        </div>
+                                    <?php endforeach; ?>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="mc-modal-footer">
-                            <button type="button" class="button" onclick="mcCloseOutletModal()">Cancel</button>
-                            <button type="submit" class="button button-primary mc-btn-primary" id="mcSaveBtn">Save Outlet</button>
-                        </div>
-                    </form>
+                    <div class="mc-modal-footer">
+                        <button type="button" class="button" onclick="mcCloseOutletModal()">Cancel</button>
+                        <button type="submit" class="button button-primary mc-btn-primary" id="mcSaveBtn">Save Outlet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Page 4: Bulk Google Maps Photo Sync Dashboard
+     */
+    public function render_photo_sync_page() {
+        $outlets = MC_Outlet_DB::get_outlets();
+        $api_key = get_option('mc_google_maps_api_key', '');
+        
+        $total_count = count($outlets);
+        $synced_outlets = array_filter($outlets, fn($o) => !empty($o['photo_url']));
+        $missing_outlets = array_values(array_filter($outlets, fn($o) => empty($o['photo_url'])));
+        $synced_count = count($synced_outlets);
+        $missing_count = count($missing_outlets);
+        $sync_percentage = $total_count > 0 ? round(($synced_count / $total_count) * 100) : 0;
+        ?>
+        <div class="wrap mc-admin-wrap">
+            <div class="mc-admin-header">
+                <div>
+                    <h1 class="mc-admin-title">⚡ Google Maps Photos Bulk Sync</h1>
+                    <p class="mc-admin-sub">Batch query Google Places API (New) to pull authentic storefront and interior photos for all retail locations.</p>
+                </div>
+                <div>
+                    <a href="<?php echo admin_url('admin.php?page=mc-outlets'); ?>" class="button button-secondary">← Back to Outlets List</a>
                 </div>
             </div>
+
+            <!-- Metric Cards -->
+            <div class="mc-sync-metrics-grid">
+                <div class="mc-sync-metric-card">
+                    <span class="mc-metric-label">Total Outlets</span>
+                    <strong class="mc-metric-val"><?php echo $total_count; ?></strong>
+                    <span class="mc-metric-sub">Registered in database</span>
+                </div>
+                <div class="mc-sync-metric-card success">
+                    <span class="mc-metric-label">✅ Photos Synced</span>
+                    <strong class="mc-metric-val" id="mcSyncedCountMetric"><?php echo $synced_count; ?></strong>
+                    <span class="mc-metric-sub" id="mcSyncedPercentMetric"><?php echo $sync_percentage; ?>% Coverage</span>
+                </div>
+                <div class="mc-sync-metric-card warning">
+                    <span class="mc-metric-label">⚠️ Missing Photos</span>
+                    <strong class="mc-metric-val" id="mcMissingCountMetric"><?php echo $missing_count; ?></strong>
+                    <span class="mc-metric-sub">Need synchronization</span>
+                </div>
+                <div class="mc-sync-metric-card <?php echo !empty($api_key) ? 'info' : 'danger'; ?>">
+                    <span class="mc-metric-label">API Status</span>
+                    <strong class="mc-metric-val" style="font-size:18px; line-height:1.4;">
+                        <?php echo !empty($api_key) ? '🟢 Key Ready' : '🔴 Key Missing'; ?>
+                    </strong>
+                    <span class="mc-metric-sub">
+                        <?php if (!empty($api_key)) : ?>
+                            Places API (New) Enabled
+                        <?php else : ?>
+                            <a href="<?php echo admin_url('admin.php?page=mc-settings'); ?>">Configure in Settings ↗</a>
+                        <?php endif; ?>
+                    </span>
+                </div>
+            </div>
+
+            <?php if (empty($api_key)) : ?>
+                <div class="notice notice-error" style="padding:12px; margin:15px 0;">
+                    <strong>Google Places API Key is not configured!</strong>
+                    Please go to <a href="<?php echo admin_url('admin.php?page=mc-settings'); ?>"><strong>Settings & Sync</strong></a> and enter your Google Places API Key before starting auto-sync.
+                </div>
+            <?php endif; ?>
+
+            <!-- Sync Controls Card -->
+            <div class="mc-admin-card" style="margin-top:20px;">
+                <h2 style="margin-top:0;">1. Synchronization Settings</h2>
+                <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:center; margin:15px 0;">
+                    <div>
+                        <label style="font-weight:600; display:block; margin-bottom:5px;">Target Scope:</label>
+                        <label style="margin-right:15px; cursor:pointer;">
+                            <input type="radio" name="mcSyncScope" value="missing" checked />
+                            <strong>Only Outlets Missing Photos (<?php echo $missing_count; ?> outlets)</strong> <span style="color:#666;">(Fastest & Recommended)</span>
+                        </label>
+                        <label style="cursor:pointer;">
+                            <input type="radio" name="mcSyncScope" value="all" />
+                            <strong>Force Re-Sync All (<?php echo $total_count; ?> outlets)</strong>
+                        </label>
+                    </div>
+
+                    <div style="border-left:1px solid #e5e7eb; padding-left:20px;">
+                        <label style="font-weight:600; display:block; margin-bottom:5px;">Delay Between Requests:</label>
+                        <select id="mcSyncDelay" style="min-width:160px;">
+                            <option value="400">400 ms (Fast)</option>
+                            <option value="600" selected>600 ms (Recommended)</option>
+                            <option value="1000">1.0 second (Safe)</option>
+                            <option value="1500">1.5 seconds (Very Safe)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button type="button" class="button button-primary button-hero" id="mcStartSyncBtn" onclick="mcStartBatchPhotoSync()" <?php disabled(empty($api_key)); ?>>
+                        <span class="dashicons dashicons-update" style="margin-top:4px;"></span> Start Google Photos Auto-Sync
+                    </button>
+                    <button type="button" class="button button-secondary button-hero" id="mcStopSyncBtn" onclick="mcStopBatchPhotoSync()" style="display:none; color:#dc2626; border-color:#fca5a5;">
+                        <span class="dashicons dashicons-controls-pause" style="margin-top:4px;"></span> Pause / Stop
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Progress Card -->
+            <div class="mc-admin-card" id="mcSyncProgressCard" style="margin-top:20px; display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h3 style="margin:0;" id="mcProgressStatusTitle">Sync in progress...</h3>
+                    <span id="mcProgressPercentText" style="font-weight:700; font-size:16px; color:#2563eb;">0%</span>
+                </div>
+
+                <div class="mc-progress-bar-wrap">
+                    <div class="mc-progress-bar-fill" id="mcProgressBarFill" style="width:0%;"></div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#6b7280; margin-top:8px;">
+                    <span id="mcProgressSubtext">Preparing synchronization...</span>
+                    <span>
+                        Synced: <strong id="mcLiveSyncedCount" style="color:#16a34a;">0</strong> |
+                        No Photo / Failed: <strong id="mcLiveFailedCount" style="color:#dc2626;">0</strong>
+                    </span>
+                </div>
+
+                <!-- Real-time Console Log -->
+                <div style="margin-top:14px;">
+                    <label style="font-weight:600; font-size:11px; text-transform:uppercase; color:#6b7280; letter-spacing:0.5px;">Activity Console</label>
+                    <div id="mcSyncTerminalLog" class="mc-terminal-console"></div>
+                </div>
+            </div>
+
+            <!-- Identified Unsynced Outlets Section -->
+            <div class="mc-admin-card" style="margin-top:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div>
+                        <h2 style="margin:0;">2. Identified Unsynced Outlets (<span id="mcUnsyncedTableCount"><?php echo $missing_count; ?></span>)</h2>
+                        <p style="margin:4px 0 0; color:#6b7280; font-size:13px;">These outlets currently have no Google Maps storefront photo. You can edit their address or name to retry, or upload an image manually.</p>
+                    </div>
+                    <button type="button" class="button" onclick="mcRefreshUnsyncedTable()">↻ Refresh List</button>
+                </div>
+
+                <table class="wp-list-table widefat fixed striped" id="mcUnsyncedTable">
+                    <thead>
+                        <tr>
+                            <th width="50">ID</th>
+                            <th width="220">Outlet Name</th>
+                            <th width="140">Retailer</th>
+                            <th width="160">State</th>
+                            <th>Address</th>
+                            <th width="120">Sync Status</th>
+                            <th width="140">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mcUnsyncedTableBody">
+                        <?php if (empty($missing_outlets)) : ?>
+                            <tr><td colspan="7" style="text-align:center; padding:30px; color:#16a34a;"><strong>🎉 Excellent! All outlets have Google storefront photos synced!</strong></td></tr>
+                        <?php else : ?>
+                            <?php foreach ($missing_outlets as $u) : ?>
+                                <tr id="unsynced-row-<?php echo esc_attr($u['id']); ?>">
+                                    <td>#<?php echo esc_html($u['id']); ?></td>
+                                    <td><strong><?php echo esc_html($u['name']); ?></strong></td>
+                                    <td><span class="mc-tag"><?php echo esc_html($u['retailer']); ?></span></td>
+                                    <td><?php echo esc_html($u['state']); ?></td>
+                                    <td><small><?php echo esc_html($u['address']); ?></small></td>
+                                    <td><span class="status-badge warning" id="sync-status-<?php echo esc_attr($u['id']); ?>">No Photo</span></td>
+                                    <td>
+                                        <button type="button" class="button button-small" onclick="mcEditOutlet(<?php echo esc_attr($u['id']); ?>)">Edit Outlet</button>
+                                        <button type="button" class="button button-small" onclick="mcRetrySingleSync(<?php echo esc_attr($u['id']); ?>)">Retry</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Include shared Edit/Add Outlet Modal -->
+            <?php $this->render_outlet_modal(); ?>
 
         </div>
         <?php
@@ -602,6 +834,8 @@ class MC_Outlet_Admin {
         $lat = floatval($_POST['lat'] ?? 0);
         $lng = floatval($_POST['lng'] ?? 0);
 
+        $outlet_id = (int) ($_POST['outlet_id'] ?? 0);
+
         if (empty($name)) {
             wp_send_json_error('Please enter an Outlet Name first.');
         }
@@ -663,10 +897,15 @@ class MC_Outlet_Admin {
                             $photo_url = 'https://places.googleapis.com/v1/' . $photo_name . '/media?maxWidthPx=1000&maxHeightPx=800&key=' . urlencode($api_key);
                         }
 
+                        if ($outlet_id > 0) {
+                            MC_Outlet_DB::update_outlet_photo($outlet_id, $photo_url);
+                        }
+
                         wp_send_json_success([
                             'photo_url' => $photo_url,
                             'place_name' => $place['displayName']['text'] ?? $name,
-                            'source' => 'Places API (New)'
+                            'source' => 'Places API (New)',
+                            'saved_to_db' => $outlet_id > 0,
                         ]);
                         return;
                     }
@@ -699,10 +938,15 @@ class MC_Outlet_Admin {
                             'key' => $api_key,
                         ], 'https://maps.googleapis.com/maps/api/place/photo');
 
+                        if ($outlet_id > 0) {
+                            MC_Outlet_DB::update_outlet_photo($outlet_id, $photo_url);
+                        }
+
                         wp_send_json_success([
                             'photo_url' => $photo_url,
                             'place_name' => $place['name'] ?? $name,
-                            'source' => 'Legacy Places API'
+                            'source' => 'Legacy Places API',
+                            'saved_to_db' => $outlet_id > 0,
                         ]);
                         return;
                     }
@@ -723,10 +967,15 @@ class MC_Outlet_Admin {
                 'key' => $api_key,
             ], 'https://maps.googleapis.com/maps/api/streetview');
 
+            if ($outlet_id > 0) {
+                MC_Outlet_DB::update_outlet_photo($outlet_id, $street_view_url);
+            }
+
             wp_send_json_success([
                 'photo_url' => $street_view_url,
                 'is_street_view' => true,
-                'message' => 'Street View photo generated!'
+                'message' => 'Street View photo generated!',
+                'saved_to_db' => $outlet_id > 0,
             ]);
             return;
         }
@@ -737,6 +986,52 @@ class MC_Outlet_Admin {
         }
 
         wp_send_json_error('No photo found on Google Maps for "' . esc_html($name) . '". Try adding more address details.');
+    }
+
+    /**
+     * AJAX: Get Outlets for Batch Sync & Unsynced identification
+     */
+    public function ajax_get_sync_outlets() {
+        check_ajax_referer('mc_admin_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $scope = sanitize_text_field($_POST['scope'] ?? 'missing');
+        $all_outlets = MC_Outlet_DB::get_all_outlets();
+
+        $missing_outlets = [];
+        $synced_outlets = [];
+
+        foreach ($all_outlets as $o) {
+            if (empty($o['photo_url'])) {
+                $missing_outlets[] = $o;
+            } else {
+                $synced_outlets[] = $o;
+            }
+        }
+
+        $target_outlets = ($scope === 'all') ? $all_outlets : $missing_outlets;
+
+        wp_send_json_success([
+            'outlets' => array_map(function($o) {
+                return [
+                    'id' => (int) $o['id'],
+                    'name' => $o['name'],
+                    'retailer' => $o['retailer'] ?? '',
+                    'state' => $o['state'] ?? '',
+                    'address' => $o['address'] ?? '',
+                    'lat' => (float) ($o['latitude'] ?? 0),
+                    'lng' => (float) ($o['longitude'] ?? 0),
+                    'has_photo' => !empty($o['photo_url']),
+                    'photo_url' => $o['photo_url'] ?? '',
+                ];
+            }, $target_outlets),
+            'total_count' => count($all_outlets),
+            'missing_count' => count($missing_outlets),
+            'synced_count' => count($synced_outlets),
+            'target_count' => count($target_outlets),
+        ]);
     }
 }
 new MC_Outlet_Admin();

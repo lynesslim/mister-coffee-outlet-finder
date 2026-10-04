@@ -150,7 +150,16 @@
     });
   };
 
-  // Filter Admin Table
+  // Filter Admin Table by Search and Photo Status
+  let mcActivePhotoFilter = 'all';
+
+  window.mcFilterPhotoStatus = function(filter) {
+    mcActivePhotoFilter = filter;
+    $('.mc-photo-filter-btn').removeClass('active');
+    $(`.mc-photo-filter-btn[data-filter="${filter}"]`).addClass('active');
+    mcFilterAdminTable();
+  };
+
   window.mcFilterAdminTable = function() {
     const q = ($('#mcAdminSearch').val() || '').toLowerCase().trim();
     let visible = 0;
@@ -158,7 +167,17 @@
     $('#mcOutletsTable tbody tr').each(function() {
       const name = $(this).attr('data-name') || '';
       const state = $(this).attr('data-state') || '';
-      if (!q || name.includes(q) || state.includes(q)) {
+      const hasPhoto = $(this).attr('data-has-photo') === '1';
+
+      const matchesSearch = !q || name.includes(q) || state.includes(q);
+      let matchesFilter = true;
+      if (mcActivePhotoFilter === 'synced') {
+        matchesFilter = hasPhoto;
+      } else if (mcActivePhotoFilter === 'missing') {
+        matchesFilter = !hasPhoto;
+      }
+
+      if (matchesSearch && matchesFilter) {
         $(this).show();
         visible++;
       } else {
@@ -308,6 +327,7 @@
 
   // Fetch Storefront Photo from Google Places API
   window.mcFetchGooglePhoto = function() {
+    const outletId = $('#outlet_id').val() || 0;
     const name = $('#outlet_name').val().trim();
     const address = $('#outlet_address').val().trim();
     const lat = $('#outlet_lat').val().trim();
@@ -322,7 +342,7 @@
     }
 
     btn.prop('disabled', true).text('⏳ Fetching...');
-    status.show().html('<span style="color:#2563eb;">Searching Google Places...</span>');
+    status.show().html('<span style="color:#2563eb;">Searching Google Places (New)...</span>');
 
     $.ajax({
       url: mcAdminData.ajax_url,
@@ -330,6 +350,7 @@
       data: {
         action: 'mc_fetch_google_photo',
         nonce: mcAdminData.nonce,
+        outlet_id: outletId,
         name: name,
         address: address,
         lat: lat,
@@ -348,6 +369,300 @@
       error: function() {
         btn.prop('disabled', false).html('📍 Fetch from Google Maps');
         status.html('<span style="color:#dc2626;">❌ Request failed. Check server connection.</span>');
+      }
+    });
+  };
+
+  // -------------------------------------------------------------
+  // Bulk Google Photos Sync Logic
+  // -------------------------------------------------------------
+  const mcSyncState = {
+    running: false,
+    outlets: [],
+    index: 0,
+    synced: 0,
+    failed: 0,
+    delay: 600
+  };
+
+  function mcLogToTerminal(msg, type = 'info') {
+    const term = $('#mcSyncTerminalLog');
+    if (!term.length) return;
+    const time = new Date().toLocaleTimeString();
+    let color = '#93c5fd'; // blue
+    if (type === 'success') color = '#4ade80'; // green
+    if (type === 'warn') color = '#facc15'; // yellow
+    if (type === 'error') color = '#f87171'; // red
+    if (type === 'bold') color = '#ffffff';
+
+    const line = `<div style="margin-bottom:3px;"><span style="color:#6b7280;">[${time}]</span> <span style="color:${color};">${msg}</span></div>`;
+    term.append(line);
+    term.scrollTop(term.prop('scrollHeight'));
+  }
+
+  window.mcStartBatchPhotoSync = function() {
+    const scope = $('input[name="mcSyncScope"]:checked').val() || 'missing';
+    const delay = parseInt($('#mcSyncDelay').val(), 10) || 600;
+
+    $('#mcStartSyncBtn').hide();
+    $('#mcStopSyncBtn').show();
+    $('#mcSyncProgressCard').slideDown();
+
+    mcSyncState.running = true;
+    mcSyncState.delay = delay;
+    mcSyncState.index = 0;
+    mcSyncState.synced = 0;
+    mcSyncState.failed = 0;
+    mcSyncState.outlets = [];
+
+    $('#mcLiveSyncedCount').text('0');
+    $('#mcLiveFailedCount').text('0');
+    $('#mcProgressPercentText').text('0%');
+    $('#mcProgressBarFill').css('width', '0%');
+    $('#mcProgressStatusTitle').text('Fetching outlets list...');
+    $('#mcProgressSubtext').text('Querying database...');
+    $('#mcSyncTerminalLog').empty();
+
+    mcLogToTerminal(`Initializing batch synchronization (Scope: ${scope.toUpperCase()}, Delay: ${delay}ms)...`, 'bold');
+
+    $.ajax({
+      url: mcAdminData.ajax_url,
+      type: 'POST',
+      data: {
+        action: 'mc_get_sync_outlets',
+        nonce: mcAdminData.nonce,
+        scope: scope
+      },
+      success: function(res) {
+        if (!res.success || !res.data.outlets || res.data.outlets.length === 0) {
+          mcLogToTerminal('No outlets match the selected sync criteria, or all are already synced!', 'success');
+          $('#mcProgressStatusTitle').text('Complete');
+          $('#mcProgressSubtext').text('Nothing to sync.');
+          $('#mcStartSyncBtn').show();
+          $('#mcStopSyncBtn').hide();
+          mcSyncState.running = false;
+          return;
+        }
+
+        mcSyncState.outlets = res.data.outlets;
+        mcLogToTerminal(`Found ${res.data.outlets.length} target outlets. Starting automated Google search...`, 'bold');
+        $('#mcProgressStatusTitle').text(`Syncing ${res.data.outlets.length} outlets...`);
+        
+        mcRunSyncStep();
+      },
+      error: function() {
+        mcLogToTerminal('Failed to retrieve outlets from server.', 'error');
+        mcStopBatchPhotoSync();
+      }
+    });
+  };
+
+  function mcRunSyncStep() {
+    if (!mcSyncState.running) {
+      mcLogToTerminal('Synchronization stopped by user.', 'warn');
+      $('#mcStartSyncBtn').show();
+      $('#mcStopSyncBtn').hide();
+      $('#mcProgressStatusTitle').text('Paused');
+      return;
+    }
+
+    if (mcSyncState.index >= mcSyncState.outlets.length) {
+      // Completed all
+      mcSyncState.running = false;
+      $('#mcStartSyncBtn').show();
+      $('#mcStopSyncBtn').hide();
+      $('#mcProgressBarFill').css('width', '100%');
+      $('#mcProgressPercentText').text('100%');
+      $('#mcProgressStatusTitle').text('🎉 Synchronization Complete!');
+      $('#mcProgressSubtext').text(`Finished processing ${mcSyncState.outlets.length} outlets. Newly Synced: ${mcSyncState.synced}, Not Found/Failed: ${mcSyncState.failed}`);
+      mcLogToTerminal(`========================================`, 'bold');
+      mcLogToTerminal(`Batch sync finished! Total: ${mcSyncState.outlets.length} | Synced: ${mcSyncState.synced} | No Photo: ${mcSyncState.failed}`, 'success');
+      
+      // Update Unsynced Table & Metric cards
+      mcRefreshUnsyncedTable();
+      return;
+    }
+
+    const outlet = mcSyncState.outlets[mcSyncState.index];
+    const currentNum = mcSyncState.index + 1;
+    const total = mcSyncState.outlets.length;
+    const pct = Math.round((currentNum / total) * 100);
+
+    $('#mcProgressBarFill').css('width', `${pct}%`);
+    $('#mcProgressPercentText').text(`${pct}%`);
+    $('#mcProgressSubtext').text(`Processing (${currentNum}/${total}): ${outlet.name}`);
+
+    mcLogToTerminal(`[${currentNum}/${total}] Searching Google Places for "${outlet.name}"...`, 'info');
+
+    $.ajax({
+      url: mcAdminData.ajax_url,
+      type: 'POST',
+      data: {
+        action: 'mc_fetch_google_photo',
+        nonce: mcAdminData.nonce,
+        outlet_id: outlet.id,
+        name: outlet.name,
+        address: outlet.address,
+        lat: outlet.lat,
+        lng: outlet.lng
+      },
+      success: function(res) {
+        if (res.success && res.data.photo_url) {
+          mcSyncState.synced++;
+          $('#mcLiveSyncedCount').text(mcSyncState.synced);
+          mcLogToTerminal(`✅ [#${outlet.id}] Photo saved for "${outlet.name}" (${res.data.source || 'Places API'})`, 'success');
+          
+          // Animate and remove from Unsynced table if present
+          const statusBadge = $(`#sync-status-${outlet.id}`);
+          if (statusBadge.length) {
+            statusBadge.removeClass('warning error').addClass('active').text('Synced');
+            setTimeout(function() {
+              $(`#unsynced-row-${outlet.id}`).fadeOut(400, function() {
+                $(this).remove();
+                const currentUnsynced = parseInt($('#mcUnsyncedTableCount').text(), 10) || 1;
+                const newCount = Math.max(0, currentUnsynced - 1);
+                $('#mcUnsyncedTableCount').text(newCount);
+                $('#mcMissingCountMetric').text(newCount);
+              });
+            }, 500);
+          }
+        } else {
+          mcSyncState.failed++;
+          $('#mcLiveFailedCount').text(mcSyncState.failed);
+          const errMsg = res.data || 'No photo found';
+          mcLogToTerminal(`⚠️ [#${outlet.id}] No photo for "${outlet.name}": ${errMsg}`, 'warn');
+          
+          const statusBadge = $(`#sync-status-${outlet.id}`);
+          if (statusBadge.length) {
+            statusBadge.removeClass('warning active').addClass('error').text('No Photo');
+          }
+        }
+      },
+      error: function() {
+        mcSyncState.failed++;
+        $('#mcLiveFailedCount').text(mcSyncState.failed);
+        mcLogToTerminal(`❌ [#${outlet.id}] Connection failed for "${outlet.name}"`, 'error');
+      },
+      complete: function() {
+        mcSyncState.index++;
+        if (mcSyncState.running) {
+          setTimeout(mcRunSyncStep, mcSyncState.delay);
+        }
+      }
+    });
+  }
+
+  window.mcStopBatchPhotoSync = function() {
+    mcSyncState.running = false;
+    $('#mcStartSyncBtn').show();
+    $('#mcStopSyncBtn').hide();
+    mcLogToTerminal('Pause requested... Finishing active request.', 'warn');
+  };
+
+  // Single Retry from Unsynced Table
+  window.mcRetrySingleSync = function(outletId) {
+    const row = $(`#unsynced-row-${outletId}`);
+    const statusBadge = $(`#sync-status-${outletId}`);
+    if (!row.length) return;
+
+    statusBadge.removeClass('error active warning').addClass('warning').text('Searching...');
+
+    $.ajax({
+      url: mcAdminData.ajax_url,
+      type: 'POST',
+      data: {
+        action: 'mc_get_outlet',
+        nonce: mcAdminData.nonce,
+        id: outletId
+      },
+      success: function(getRes) {
+        if (!getRes.success || !getRes.data) {
+          statusBadge.removeClass('warning active').addClass('error').text('Outlet Error');
+          return;
+        }
+        const o = getRes.data;
+        $.ajax({
+          url: mcAdminData.ajax_url,
+          type: 'POST',
+          data: {
+            action: 'mc_fetch_google_photo',
+            nonce: mcAdminData.nonce,
+            outlet_id: o.id,
+            name: o.name,
+            address: o.address,
+            lat: o.latitude,
+            lng: o.longitude
+          },
+          success: function(photoRes) {
+            if (photoRes.success && photoRes.data.photo_url) {
+              statusBadge.removeClass('warning error').addClass('active').text('Synced ✅');
+              setTimeout(function() {
+                row.fadeOut(400, function() {
+                  row.remove();
+                  const currentUnsynced = parseInt($('#mcUnsyncedTableCount').text(), 10) || 1;
+                  const newCount = Math.max(0, currentUnsynced - 1);
+                  $('#mcUnsyncedTableCount').text(newCount);
+                  $('#mcMissingCountMetric').text(newCount);
+                });
+              }, 600);
+            } else {
+              statusBadge.removeClass('warning active').addClass('error').text('Not Found');
+              alert(photoRes.data || 'No photo found for this outlet on Google Maps.');
+            }
+          },
+          error: function() {
+            statusBadge.removeClass('warning active').addClass('error').text('Failed');
+          }
+        });
+      }
+    });
+  };
+
+  // Refresh Unsynced Table dynamically
+  window.mcRefreshUnsyncedTable = function() {
+    const tbody = $('#mcUnsyncedTableBody');
+    tbody.html('<tr><td colspan="7" style="text-align:center; padding:20px;">Refreshing unsynced outlets...</td></tr>');
+
+    $.ajax({
+      url: mcAdminData.ajax_url,
+      type: 'POST',
+      data: {
+        action: 'mc_get_sync_outlets',
+        nonce: mcAdminData.nonce,
+        scope: 'missing'
+      },
+      success: function(res) {
+        if (res.success) {
+          $('#mcUnsyncedTableCount').text(res.data.missing_count);
+          $('#mcMissingCountMetric').text(res.data.missing_count);
+          $('#mcSyncedCountMetric').text(res.data.synced_count);
+          if (res.data.total_count > 0) {
+            const pct = Math.round((res.data.synced_count / res.data.total_count) * 100);
+            $('#mcSyncedPercentMetric').text(`${pct}% Coverage`);
+          }
+
+          if (!res.data.outlets || res.data.outlets.length === 0) {
+            tbody.html('<tr><td colspan="7" style="text-align:center; padding:30px; color:#16a34a;"><strong>🎉 Excellent! All outlets have Google storefront photos synced!</strong></td></tr>');
+            return;
+          }
+
+          let html = '';
+          res.data.outlets.forEach(function(u) {
+            html += `<tr id="unsynced-row-${u.id}">
+              <td>#${u.id}</td>
+              <td><strong>${u.name}</strong></td>
+              <td><span class="mc-tag">${u.retailer}</span></td>
+              <td>${u.state}</td>
+              <td><small>${u.address}</small></td>
+              <td><span class="status-badge warning" id="sync-status-${u.id}">No Photo</span></td>
+              <td>
+                <button type="button" class="button button-small" onclick="mcEditOutlet(${u.id})">Edit Outlet</button>
+                <button type="button" class="button button-small" onclick="mcRetrySingleSync(${u.id})">Retry</button>
+              </td>
+            </tr>`;
+          });
+          tbody.html(html);
+        }
       }
     });
   };

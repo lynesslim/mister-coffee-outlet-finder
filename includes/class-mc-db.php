@@ -260,6 +260,15 @@ class MC_Outlet_DB {
     }
 
     /**
+     * Fast update for outlet photo URL
+     */
+    public static function update_outlet_photo($id, $photo_url) {
+        global $wpdb;
+        $table = self::get_outlets_table();
+        return $wpdb->update($table, ['photo_url' => esc_url_raw($photo_url)], ['id' => (int) $id]);
+    }
+
+    /**
      * Get all catalog products
      */
     public static function get_products() {

@@ -271,3 +271,139 @@
 .mc-product-check-item:hover {
   color: #BC1419;
 }
+
+/* Photo Filter Buttons */
+.mc-photo-filter-btn {
+  font-size: 12px !important;
+  line-height: 26px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 4px !important;
+  color: #4b5563 !important;
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+  transition: all 0.15s ease;
+}
+.mc-photo-filter-btn:hover {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+}
+.mc-photo-filter-btn.active {
+  background: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+/* Sync Metrics Grid */
+.mc-sync-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.mc-sync-metric-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  border-left: 4px solid #6b7280;
+}
+
+.mc-sync-metric-card.success {
+  border-left-color: #16a34a;
+}
+.mc-sync-metric-card.warning {
+  border-left-color: #d97706;
+}
+.mc-sync-metric-card.info {
+  border-left-color: #2563eb;
+}
+.mc-sync-metric-card.danger {
+  border-left-color: #dc2626;
+}
+
+.mc-metric-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.mc-metric-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.mc-metric-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Progress Bar */
+.mc-progress-bar-wrap {
+  width: 100%;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.mc-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #10b981);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+/* Activity Terminal Console */
+.mc-terminal-console {
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 14px 16px;
+  border-radius: 6px;
+  height: 190px;
+  overflow-y: auto;
+  border: 1px solid #1e293b;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.status-badge.warning {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.status-badge.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
